@@ -1,6 +1,10 @@
 const formulario = document.querySelector('#formulario');
 const resultado = document.querySelector('#resultado');
-
+const paginacionDiv = document.querySelector('#paginacion');
+const registrosPagina = 30;
+let totalPaginas;
+let iterador;
+let paginaActual = 1;
 
 window.onload = () => {
   formulario.addEventListener('submit', validarFormulario);
@@ -42,18 +46,35 @@ function mostrarAlerta(mensaje) {
 
 }
 
-function buscarImagenes(termino) {
+function buscarImagenes() {
+  const terminoBusqueda = document.querySelector('#termino').value.trim();
   const key = "34186713-f9ab67c25633920de31a48e02";
-  const url = `https://pixabay.com/api/?key=${key}&q=${termino}`;
+  const url = `https://pixabay.com/api/?key=${key}&q=${terminoBusqueda}&per_page=${registrosPagina}&page=${paginaActual}`;
 
   fetch(url)
     .then(response => response.json())
     .then(results => {
+        totalPaginas = calcularPaginas(results.totalHits);
         mostrarImagenes(results.hits);
     })
 }
 
+function calcularPaginas(total) {
+  return parseInt(Math.ceil(total/registrosPagina));
+}
+
+function *crearPaginador(total) {
+  for(let i = 1; i <= total; i++) {
+    yield i;
+  }
+}
+
 function mostrarImagenes(imagenes) {
+
+  while(resultado.firstChild){
+    resultado.removeChild(resultado.firstChild);
+  }
+
   imagenes.forEach(imagen => {
     const { likes, views, previewURL, largeImageURL } = imagen;
 
@@ -76,4 +97,33 @@ function mostrarImagenes(imagenes) {
       </div>
     `;
   })
+
+  while(paginacionDiv.firstChild){
+    paginacionDiv.removeChild(paginacionDiv.firstChild);
+  }
+
+  imprimirPaginador();
+
+}
+
+function imprimirPaginador() {
+  iterador = crearPaginador(totalPaginas);
+  while(true){
+    const {value, done} = iterador.next();
+
+    if(done) return;
+
+    const boton = document.createElement('a');
+    boton.href = '#';
+    boton.dataset.pagina = value;
+    boton.textContent = value;
+    boton.classList.add('siguiente', 'bg-yellow-400', 'px-4', 'py-1', 'mr-2', 'font-bold', 'mb-1', 'rounded');
+
+    boton.onclick = () =>{
+      paginaActual = value;
+      buscarImagenes();
+    }
+
+    paginacionDiv.appendChild(boton);
+  }
 }
